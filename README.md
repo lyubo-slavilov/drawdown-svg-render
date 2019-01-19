@@ -1,6 +1,8 @@
 # Drawdown Svg Render
 
-D3 based renderer which renders parsed drawdown diagrams.
+D3 based renderer which renders [parsed drawdown][30d96062] diagrams.
+
+  [30d96062]: https://github.com/lyubo-slavilov/drawdown-parser "drawdown-parser"
 
 ## Instalation
 ```bash
