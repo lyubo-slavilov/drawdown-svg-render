@@ -1,4 +1,3 @@
-'use babel';
 import { PADDING as P } from './Renderer'
 
 export function block(d) {
