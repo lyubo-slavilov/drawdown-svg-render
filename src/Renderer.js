@@ -2,7 +2,7 @@ import { select as d3select } from 'd3-selection';
 import { selectAll as d3selectAll } from 'd3-selection';
 import { zoom as d3zoom } from 'd3-zoom';
 import { drag as d3drag } from 'd3-drag';
-import { event as d3event } from 'd3-dispatch';
+import { event as d3event } from 'd3-selection';
 import { zoomTransform  as d3zoomTransform } from 'd3-zoom';
 
 import { hierarchy as d3Hierarchy, tree as d3Tree } from 'd3-hierarchy';
@@ -19,12 +19,12 @@ export class Renderer {
   constructor({
       onDidChangeLayout = ()=>{},
       onDidDragOrZoom = ()=>{},
-      saveAsImage = (svg)=>{},
+      onDidRender = (svg)=>{},
       diagramLayout = {}
   } = {}) {
     this.onDidChangeLayout = onDidChangeLayout;
     this.onDidDragOrZoom = onDidDragOrZoom;
-    this.saveAsImage = saveAsImage;
+    this.onDidRender = onDidRender;
     this.diagramLayout = diagramLayout;
   }
 
@@ -48,18 +48,9 @@ export class Renderer {
         d3event.stopPropagation();
       })
 
-    const btn = document.createElement('button');
-    btn.classList.add('dd-save-as-image', 'btn', 'icon', 'icon-desktop-download');
-    container.appendChild(btn);
-
-    btn.addEventListener('click', () => {
-
-      this.saveAsImage(svg.node());
-
-    });
-
     this.updateLinks(scene);
     this.onDidDragOrZoom(svg.node());
+    this.onDidRender(svg.node());
   }
 
   createScene(container, diagram, layout) {
@@ -360,7 +351,7 @@ export class Renderer {
 
     let treeData = diagram.tree;
     let root = d3Hierarchy(treeData);
-    let tree = d3Tree().nodeSize([MIN_WIDTH, MIN_WIDTH*1.2])(root);
+    let tree = d3Tree().nodeSize([2*MIN_WIDTH, 2*MIN_WIDTH])(root);
     let layout = {
       blocks: {}
     }
