@@ -191,6 +191,13 @@ export class Renderer {
     })();
   }
 
+  /**
+   * Creates the diagram itself
+   * @param  {d3selection} svg
+   * @param  {d3selection} scene
+   * @param  {object} diagram
+   * @param  {object} layout
+   */
   createDiagram(svg, scene, diagram, layout) {
     let renderer = this;
     //BLOCKS
@@ -271,6 +278,10 @@ export class Renderer {
 
 
   }
+  /**
+   * Used to redraw the links between nodes
+   * @param  d3Selection scene The scene container
+   */
   updateLinks(scene) {
     let links = scene.selectAll('.dd-link')
       .each(function(d) {
@@ -351,7 +362,7 @@ export class Renderer {
 
     let treeData = diagram.tree;
     let root = d3Hierarchy(treeData);
-    let tree = d3Tree().nodeSize([2*MIN_WIDTH, 2*MIN_WIDTH])(root);
+    let tree = d3Tree().nodeSize([2*MIN_WIDTH, 1.5*MIN_WIDTH])(root);
     let layout = {
       blocks: {}
     }
