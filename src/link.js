@@ -1,8 +1,13 @@
 
 export function tailGenerator(style) {
   switch ( style ) {
+
+    case '-':
     case 'STRAIGHT': return straightTail;
+
+    case '~':
     case 'CURVED': return curvedTail;
+
     default:
       throw `Unknown link style "${style}"`;
   }
@@ -127,22 +132,53 @@ function tail(d, isStraight) {
   return script;
 }
 
-export function head(d) {
+
+export function leftHead(d) {
+  return head(d, false)
+}
+export function rightHead(d) {
+  return head(d, true)
+}
+function head(d, isRight) {
   if (!d.pathMeta) {
     return;
   }
-  let end = d.pathMeta.end;
-  let dir = d.pathMeta.dir;
-  let w = 14;
-  let h = 8;
+  let end;
+  if (isRight) {
+    end = d.pathMeta.end;
+  } else {
+    end = d.pathMeta.start;
+  }
+
+  const dir = d.pathMeta.dir;
+  const w = 14;
+  const h = 8;
+
+  let directions;
+  if (isRight) {
+    directions = {
+      easts: ['ENE', 'E', 'ESE'],
+      wests: ['WNW', 'W', 'WSW', "SELF"],
+      norts: ['NNW', 'N', 'NNE'],
+      souths: ['SSW', 'S', 'SSE']
+    }
+  } else {
+    directions = {
+      easts: ['NNW', 'W', 'SSW'],
+      wests: ['NNE', 'E', 'SSE'],
+      norts: ['WSW', 'S', 'ESE'],
+      souths: ['WNW', 'N', 'ENE', "SELF"]
+    }
+  }
+
   switch (true) {
-    case ['ENE', 'E', 'ESE'].indexOf(dir) >= 0:
+    case directions.easts.indexOf(dir) >= 0:
       return `M${end.x} ${end.y}L${end.x - w} ${end.y - h/2}V${end.y + h/2}Z`;
-    case ['WNW', 'W', 'WSW', "SELF"].indexOf(dir) >= 0:
+    case directions.wests.indexOf(dir) >= 0:
       return `M${end.x} ${end.y}L${end.x + w} ${end.y - h/2}V${end.y + h/2}Z`;
-    case ['NNW', 'N', 'NNE'].indexOf(dir) >= 0:
+    case directions.norts.indexOf(dir) >= 0:
       return `M${end.x} ${end.y}L${end.x - h/2} ${end.y + w}H${end.x + h/2}Z`;
-    case ['SSW', 'S', 'SSE'].indexOf(dir) >= 0:
+    case directions.souths.indexOf(dir) >= 0:
       return `M${end.x} ${end.y}L${end.x - h/2} ${end.y - w}H${end.x + h/2}Z`;
 
   }

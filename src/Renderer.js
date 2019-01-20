@@ -6,7 +6,13 @@ import { event as d3event } from 'd3-selection';
 import { zoomTransform  as d3zoomTransform } from 'd3-zoom';
 
 import { hierarchy as d3Hierarchy, tree as d3Tree } from 'd3-hierarchy';
-import { head as linkHead, tailGenerator } from './link';
+
+import {
+  rightHead as linkRightHead,
+  leftHead as linkLeftHead,
+  tailGenerator
+} from './link';
+
 import { shapeGenerator } from './shape';
 
 
@@ -31,14 +37,12 @@ export class Renderer {
       onDidDragOrZoom = ()=>{},
       onDidRender = (svg)=>{},
       diagramLayout = {},
-      linksStyle = LINK_STYLE_STRAIGHT,
       nodesStyle = NODE_STYLE_AUTO
   } = {}) {
     this.onDidChangeLayout = onDidChangeLayout;
     this.onDidDragOrZoom = onDidDragOrZoom;
     this.onDidRender = onDidRender;
     this.diagramLayout = diagramLayout;
-    this.linksStyle = linksStyle;
     this.nodesStyle = nodesStyle;
   }
 
@@ -287,7 +291,14 @@ export class Renderer {
           .each(function(d){
             let link = d3select(this);
             link.append('path').attr('class', 'dd-link-tail').datum(d);
-            link.append('path').attr('class', 'dd-link-head').datum(d);
+            if (d.rh) {
+              link.append('path').attr('class', 'dd-link-head dd-link-head-right')
+                .datum(d);
+            }
+            if (d.lh) {
+              link.append('path').attr('class', 'dd-link-head dd-link-head-left')
+                .datum(d);
+            }
             link.append('text').attr('class', 'dd-link-label').datum(d);
           });
 
@@ -299,17 +310,18 @@ export class Renderer {
    */
   updateLinks(scene) {
 
-    const linkTail = tailGenerator(this.linksStyle);
 
     let links = scene.selectAll('.dd-link')
       .each(function(d) {
-        let link = d3select(this);
-        let tail = link.select('.dd-link-tail');
-        let head = link.select('.dd-link-head');
-        let label = link.select('.dd-link-label');
+        const link = d3select(this);
+        const tail = link.select('.dd-link-tail');
+        const leftHead = link.select('.dd-link-head-left');
+        const rightHead = link.select('.dd-link-head-right');
+        const label = link.select('.dd-link-label');
 
-        tail.attr('d', linkTail);
-        head.attr('d', linkHead);
+        tail.attr('d', tailGenerator(d.style));
+        rightHead.attr('d', linkRightHead);
+        leftHead.attr('d', linkLeftHead);
 
         label.html(d.label)
           .attr('x', d.pathMeta.start.x)
