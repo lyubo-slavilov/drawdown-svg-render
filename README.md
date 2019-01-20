@@ -25,7 +25,7 @@ let script = `- Hello.
 - Yes:
   - You are cool.
 - No:
-  - You need to get coffe.`
+  - You need some coffee.`
 
 let diagramObject = factory('flow').parseText(script);
 let renderer = new Renderer();
