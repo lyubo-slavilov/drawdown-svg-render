@@ -6,13 +6,23 @@ import { event as d3event } from 'd3-selection';
 import { zoomTransform  as d3zoomTransform } from 'd3-zoom';
 
 import { hierarchy as d3Hierarchy, tree as d3Tree } from 'd3-hierarchy';
-import { head as linkHead, tail as linkTail } from './link';
-import { auto as autoShape } from './shape';
+import { head as linkHead, tailGenerator } from './link';
+import { shapeGenerator } from './shape';
 
 
 export const PADDING = 10;
 const LINE_HEIGHT = 20;
 const MIN_WIDTH = 100;
+
+
+const LINK_STYLE_STRAIGHT = 'STRAIGHT';
+const LINK_STYLE_CURVED = 'CURVED';
+
+const NODE_STYLE_AUTO = 'AUTO';
+const NODE_STYLE_RECTANGLE = 'RECTANGLE';
+const NODE_STYLE_CIRCLE = 'CIRCLE';
+const NODE_STYLE_ELLIPSE = 'ELLIPSE';
+const NODE_STYLE_DIAMOND = 'DIAMOND';
 
 export class Renderer {
 
@@ -20,12 +30,16 @@ export class Renderer {
       onDidChangeLayout = ()=>{},
       onDidDragOrZoom = ()=>{},
       onDidRender = (svg)=>{},
-      diagramLayout = {}
+      diagramLayout = {},
+      linksStyle = LINK_STYLE_STRAIGHT,
+      nodesStyle = NODE_STYLE_AUTO
   } = {}) {
     this.onDidChangeLayout = onDidChangeLayout;
     this.onDidDragOrZoom = onDidDragOrZoom;
     this.onDidRender = onDidRender;
     this.diagramLayout = diagramLayout;
+    this.linksStyle = linksStyle;
+    this.nodesStyle = nodesStyle;
   }
 
   render(container, diagram) {
@@ -200,6 +214,7 @@ export class Renderer {
    */
   createDiagram(svg, scene, diagram, layout) {
     let renderer = this;
+    const nodeShape = shapeGenerator(this.nodesStyle);
     //BLOCKS
     let blocks = scene.select('.dd-blocks').selectAll('svg')
       .data(diagram.blocks).enter()
@@ -256,7 +271,7 @@ export class Renderer {
 
 
       text.attr('transform', `translate(${-(bbox.width)  / 2} ${-(bbox.height)/2})`)
-      path.attr('d', autoShape);
+      path.attr('d', nodeShape);
       block.attr('overflow', 'auto');
 
       bbox = path.node().getBBox();
@@ -283,6 +298,9 @@ export class Renderer {
    * @param  d3Selection scene The scene container
    */
   updateLinks(scene) {
+
+    const linkTail = tailGenerator(this.linksStyle);
+
     let links = scene.selectAll('.dd-link')
       .each(function(d) {
         let link = d3select(this);

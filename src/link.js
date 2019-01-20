@@ -1,9 +1,32 @@
-export function tail(d) {
+
+export function tailGenerator(style) {
+  switch ( style ) {
+    case 'STRAIGHT': return straightTail;
+    case 'CURVED': return curvedTail;
+    default:
+      throw `Unknown link style "${style}"`;
+  }
+}
+
+function straightTail(d) {
+  const [pathMeta, script] =  tail(d, true);
+  d.pathMeta = pathMeta;
+  return script;
+}
+
+function curvedTail(d) {
+  const [pathMeta, script] =  tail(d, false);
+  d.pathMeta = pathMeta;
+  return script;
+}
+
+function tail(d, isStraight) {
 
   let sl = d.source.layout;
   let tl = d.target.layout;
 
-  let dir = getApparentDir(sl, tl);
+
+  let dir = d.source.id == d.target.id ? 'SELF' : getApparentDir(sl, tl);
 
   let start =  {x: 0, y:0};
   let end =  {x: 0, y:0};
@@ -22,7 +45,11 @@ export function tail(d) {
       if (['SSE', 'SSW'].indexOf(dir) >= 0) {
         end.y = tl.pos.y - tl.bbh/2;
       }
-      script =  `M${start.x} ${start.y} H${end.x} V${end.y}`;
+      if (isStraight) {
+        script =  `M${start.x} ${start.y} H${end.x} V${end.y}`;
+      } else {
+        script =  `M${start.x} ${start.y} Q${end.x} ${start.y} ${end.x} ${end.y}`;
+      }
       break;
     case (['ENE', 'ESE', 'WNW', 'WSW'].indexOf(dir) >= 0):
       start.x = sl.pos.x;
@@ -35,7 +62,11 @@ export function tail(d) {
       if (['WNW', 'WSW'].indexOf(dir) >= 0) {
         end.x = tl.pos.x + tl.bbw/2;
       }
-      script =  `M${start.x} ${start.y}V${end.y}H${end.x}`;
+      if (isStraight) {
+        script =  `M${start.x} ${start.y}V${end.y}H${end.x}`;
+      } else {
+        script =  `M${start.x} ${start.y}Q${start.x} ${end.y} ${end.x} ${end.y}`;
+      }
       break;
 
     case ['E', 'W'].indexOf(dir) >= 0:
@@ -48,7 +79,11 @@ export function tail(d) {
         end.x = tl.pos.x + tl.bbw/2;
       }
       middle = start.x + (end.x - start.x)/2;
-      script =  `M${start.x} ${start.y}H${middle}V${end.y}H${end.x}`;
+      if (isStraight) {
+        script =  `M${start.x} ${start.y}H${middle}V${end.y}H${end.x}`;
+      } else {
+        script =  `M${start.x} ${start.y}C${middle} ${start.y} ${middle} ${end.y} ${end.x} ${end.y}`;
+      }
       break;
     case ['N', 'S'].indexOf(dir) >= 0:
       start.x = sl.pos.x;
@@ -60,14 +95,35 @@ export function tail(d) {
         end.y = tl.pos.y - tl.bbh/2;
       }
       middle = start.y + (end.y - start.y)/2;
-      script =  `M${start.x} ${start.y}V${middle}H${end.x}V${end.y}`;
+      if (isStraight) {
+        script =  `M${start.x} ${start.y}V${middle}H${end.x}V${end.y}`;
+      } else {
+        script =  `M${start.x} ${start.y}C${start.x} ${middle} ${end.x} ${middle} ${end.x} ${end.y}`;
+      }
+      break;
+    case 'SELF' == dir:
+      start.x = sl.pos.x;
+      start.y = sl.pos.y - sl.bbh/2;
+      end.x = sl.pos.x + sl.bbw/2;
+      end.y = sl.pos.y;
+      let r = Math.sqrt(sl.bbw*sl.bbw + sl.bbh*sl.bbh)/4;
+      if (isStraight) {
+        script =  `M${start.x} ${start.y}V${start.y - r}H${end.x + r}V${end.y}H${end.x}`;
+      } else {
+        script =  `M${start.x} ${start.y}C ${start.x+r} ${start.y-3*r} ${end.x + 3*r} ${end.y} ${end.x} ${end.y}`;
+      }
+
       break;
   }
-  d.pathMeta = {
-    start: start,
-    end: end,
-    dir: dir
-  }
+
+  return [
+    {
+      start: start,
+      end: end,
+      dir: dir
+    },
+    script
+  ]
   return script;
 }
 
@@ -82,7 +138,7 @@ export function head(d) {
   switch (true) {
     case ['ENE', 'E', 'ESE'].indexOf(dir) >= 0:
       return `M${end.x} ${end.y}L${end.x - w} ${end.y - h/2}V${end.y + h/2}Z`;
-    case ['WNW', 'W', 'WSW'].indexOf(dir) >= 0:
+    case ['WNW', 'W', 'WSW', "SELF"].indexOf(dir) >= 0:
       return `M${end.x} ${end.y}L${end.x + w} ${end.y - h/2}V${end.y + h/2}Z`;
     case ['NNW', 'N', 'NNE'].indexOf(dir) >= 0:
       return `M${end.x} ${end.y}L${end.x - h/2} ${end.y + w}H${end.x + h/2}Z`;
