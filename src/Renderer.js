@@ -7,7 +7,7 @@ import { zoomTransform  as d3zoomTransform } from 'd3-zoom';
 
 import { hierarchy as d3Hierarchy, tree as d3Tree } from 'd3-hierarchy';
 import { head as linkHead, tail as linkTail } from './link';
-import { block as blockShape } from './shape';
+import { auto as autoShape } from './shape';
 
 
 export const PADDING = 10;
@@ -256,7 +256,7 @@ export class Renderer {
 
 
       text.attr('transform', `translate(${-(bbox.width)  / 2} ${-(bbox.height)/2})`)
-      path.attr('d', blockShape);
+      path.attr('d', autoShape);
       block.attr('overflow', 'auto');
 
       bbox = path.node().getBBox();
@@ -338,7 +338,7 @@ export class Renderer {
     let words = text.split(' ');
 
     let tSpan = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
-    tSpan.innerHTML = words[0];
+    tSpan.innerHTML = words.shift();
 
     tSpan.setAttribute("y", fontSize);
     tSpan.setAttribute("x", 0);
