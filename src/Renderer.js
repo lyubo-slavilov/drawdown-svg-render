@@ -37,13 +37,15 @@ export class Renderer {
       onDidDragOrZoom = ()=>{},
       onDidRender = (svg)=>{},
       diagramLayout = {},
-      nodesStyle = NODE_STYLE_AUTO
+      nodesStyle = NODE_STYLE_AUTO,
+      autoCenter = false,
   } = {}) {
     this.onDidChangeLayout = onDidChangeLayout;
     this.onDidDragOrZoom = onDidDragOrZoom;
     this.onDidRender = onDidRender;
     this.diagramLayout = diagramLayout;
     this.nodesStyle = nodesStyle;
+    this.autoCenter = autoCenter;
   }
 
   render(container, diagram) {
@@ -86,8 +88,11 @@ export class Renderer {
       })
 
     let workarea = svg.append('g')
-      .attr('class', 'workarea')
-      .attr('transform', `translate(${w/2} ${0.02*h})`);
+      .attr('class', 'workarea');
+      
+    if (this.autoCenter) {
+      workarea.attr('transform', `translate(${w/2} ${0.02*h})`);
+    }
 
     let scene = workarea.append('g')
         .attr('class', 'scene')
