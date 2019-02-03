@@ -89,7 +89,7 @@ export class Renderer {
 
     let workarea = svg.append('g')
       .attr('class', 'workarea');
-      
+
     if (this.autoCenter) {
       workarea.attr('transform', `translate(${w/2} ${0.02*h})`);
     }
@@ -397,7 +397,7 @@ export class Renderer {
 
     let treeData = diagram.tree;
     let root = d3Hierarchy(treeData);
-    let tree = d3Tree().nodeSize([2*MIN_WIDTH, 1.5*MIN_WIDTH])(root);
+    let tree = d3Tree().nodeSize([3*MIN_WIDTH, 1.3*MIN_WIDTH])(root);
     let layout = {
       blocks: {}
     }

@@ -47,7 +47,7 @@ function rectanglePath(x, y, w, h) {
 }
 
 function diamondPath(x, y, w, h) {
-  let ww = w+h + 4*P;
+  let ww = w+h + P;
   return `M${0} ${y-ww/2}
           L${x+ww/2} 0
           L0 ${y + ww/2}
