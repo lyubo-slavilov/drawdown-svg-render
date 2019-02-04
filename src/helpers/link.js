@@ -1,5 +1,6 @@
 
-export function tailGenerator(style) {
+
+export function tailGenerator(style, opts) {
   switch ( style ) {
 
     case '-':
@@ -8,8 +9,53 @@ export function tailGenerator(style) {
     case '~':
     case 'CURVED': return curvedTail;
 
+    case 'MESSAGE': return (d) => messageTail(d, opts);
+
     default:
       throw `Unknown link style "${style}"`;
+  }
+}
+
+function messageTail(d, opts) {
+  let yOffset = opts.yStart+ opts.ySeparation * d.index
+  let sl = d.source.layout;
+  let tl = d.target.layout
+
+
+  if (d.source == d.target) {
+
+    d.pathMeta = {
+      start: {x: sl.pos.x, y: yOffset - opts.ySeparation},
+      end: {x: sl.pos.x, y: yOffset},
+      dir: 'W'
+    }
+    let start = d.pathMeta.start;
+
+    d.textMeta = {
+      pos: {x: start.x + opts.ySeparation*0.8, y: start.y + opts.ySeparation/2},
+      baseLine: 'text-after-edge',
+      textAnchor: 'start'
+
+    }
+    return `M${start.x} ${start.y}
+          C ${start.x + opts.ySeparation} ${start.y}
+            ${start.x + opts.ySeparation} ${start.y + opts.ySeparation}
+            ${start.x} ${start.y + opts.ySeparation}`
+
+  } else {
+
+    d.pathMeta = {
+      start: {x: sl.pos.x, y: yOffset},
+      end: {x: tl.pos.x, y: yOffset},
+      dir: tl.pos.x > sl.pos.x ? 'E': 'W'
+    }
+
+    d.textMeta = {
+      pos: {x: d.pathMeta.start.x + (d.pathMeta.end.x - d.pathMeta.start.x) / 2, y: yOffset - 5 },
+      baseLine: 'text-after-edge',
+      textAnchor: 'middle'
+    }
+    return `M${d.source.layout.pos.x} ${yOffset} H ${d.target.layout.pos.x}`;
   }
 }
 

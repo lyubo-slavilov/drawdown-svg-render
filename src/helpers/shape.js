@@ -14,7 +14,6 @@ export function shapeGenerator(style) {
 
 export function auto(d) {
   let l = d.layout;
-
   switch (d.blockType.toUpperCase()) {
     case 'PROCESS':
       return rectanglePath(0, 0, l.w, l.h);
@@ -22,6 +21,10 @@ export function auto(d) {
         return circlePath(0, 0,  Math.sqrt(l.w*l.w + l.h*l.h)/2);
     case 'CONDITION':
       return diamondPath(0, 0, l.w, l.h)
+    case 'TIMELINE': return (() => {
+      let foo = 0;
+      return rectanglePath(0, 0, l.w, l.h)}
+    )();
   }
 }
 

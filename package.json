@@ -2,7 +2,7 @@
   "name": "drawdown-svg-render",
   "version": "1.5.2",
   "description": "Svg renderer for drawdown diagrams",
-  "main": "lib/Renderer.js",
+  "main": "lib/Factory.js",
   "scripts": {
     "start": "babel -s inline -d lib -w src",
     "build": "babel -s inline -d lib src",

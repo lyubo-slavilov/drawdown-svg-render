@@ -1,3 +1,4 @@
+
 import { select as d3select } from 'd3-selection';
 import { selectAll as d3selectAll } from 'd3-selection';
 import { zoom as d3zoom } from 'd3-zoom';
@@ -7,18 +8,16 @@ import { zoomTransform  as d3zoomTransform } from 'd3-zoom';
 
 import { hierarchy as d3Hierarchy, tree as d3Tree } from 'd3-hierarchy';
 
-import {
-  rightHead as linkRightHead,
-  leftHead as linkLeftHead,
-  tailGenerator
-} from './link';
 
-import { shapeGenerator } from './shape';
 
+
+import { shapeGenerator } from '../helpers/shape';
+
+import { arrowLabel } from '../helpers/arrow-label'
 
 export const PADDING = 10;
+export const MIN_WIDTH = 100;
 const LINE_HEIGHT = 20;
-const MIN_WIDTH = 100;
 
 
 const LINK_STYLE_STRAIGHT = 'STRAIGHT';
@@ -68,9 +67,18 @@ export class Renderer {
         d3event.stopPropagation();
       })
 
+    this.onCreate(svg, scene);
+  }
+
+  onCreate(svg, scene) {
     this.updateLinks(scene);
     this.onDidDragOrZoom(svg.node());
     this.onDidRender(svg.node());
+  }
+
+  onBlockDrag(svg, scene) {
+    this.updateLinks(scene);
+    this.onDidDragOrZoom(svg.node())
   }
 
   createScene(container, diagram, layout) {
@@ -104,6 +112,7 @@ export class Renderer {
           }
         });
 
+    scene.append('g').attr('class', 'dd-timelines');
     scene.append('g').attr('class', 'dd-blocks');
     scene.append('g').attr('class', 'dd-links');
 
@@ -251,8 +260,8 @@ export class Renderer {
               d3select(this)
                 .attr("x", d.layout.pos.x)
                 .attr("y", d.layout.pos.y);
-              renderer.updateLinks(scene);
-              renderer.onDidDragOrZoom(svg.node())
+
+              renderer.onBlockDrag(svg, scene);
             })
             .on('end', () => {
               renderer.onDidChangeLayout(diagram);
@@ -307,61 +316,39 @@ export class Renderer {
             link.append('text').attr('class', 'dd-link-label').datum(d);
           });
 
-
+    let timelines = scene.select('.dd-timelines').selectAll('line')
+      .data(diagram.blocks).enter()
+        .append('line')
+          .attr('class', 'dd-timeline');
   }
   /**
    * Used to redraw the links between nodes
    * @param  d3Selection scene The scene container
    */
   updateLinks(scene) {
-
-
-    let links = scene.selectAll('.dd-link')
-      .each(function(d) {
-        const link = d3select(this);
-        const tail = link.select('.dd-link-tail');
-        const leftHead = link.select('.dd-link-head-left');
-        const rightHead = link.select('.dd-link-head-right');
-        const label = link.select('.dd-link-label');
-
-        tail.attr('d', tailGenerator(d.style));
-        rightHead.attr('d', linkRightHead);
-        leftHead.attr('d', linkLeftHead);
-
-        label.html(d.label)
-          .attr('x', d.pathMeta.start.x)
-          .attr('y', d.pathMeta.start.y)
-          .attr('dx', d => {
-            if (['SSW', 'W', 'NNW'].indexOf(d.pathMeta.dir) >= 0) {
-              return - PADDING / 2;
-            } else {
-              return PADDING / 2;
-            }
-          })
-          .attr('dy', d => {
-            if (['WNW', 'N', 'ENE'].indexOf(d.pathMeta.dir) >= 0) {
-              return  - PADDING / 2;
-            } else {
-              return PADDING / 2;
-            }
-          })
-          .attr('dominant-baseline', d => {
-            if (['WNW', 'N', 'ENE'].indexOf(d.pathMeta.dir) >= 0) {
-              return  'text-after-edge'
-            } else {
-              return 'text-before-edge';
-            }
-          })
-          .attr('text-anchor', d => {
-            if (['SSW', 'W', 'NNW'].indexOf(d.pathMeta.dir) >= 0) {
-              return 'end';
-            } else {
-              return 'start';
-            }
-          })
-      })
+    throw new Error('Update links not implemented')
 
   }
+
+  updateTimelines(scene) {
+    let yStart = 0; //Used only in links of type "MESSAGE"
+
+    scene.selectAll('.dd-timeline').each((d) => {
+      let y = d.layout.pos.y + d.layout.h + 50;
+      yStart = Math.max(yStart, y)
+    });
+
+
+    let yEnd = scene.selectAll('.dd-link').nodes().length * 80+ yStart;
+
+    scene.selectAll('.dd-timeline')
+      .attr('x1', d => d.layout.pos.x)
+      .attr('y1', d =>  d.layout.pos.y + d.layout.h/2)
+      .attr('x2', d =>  d.layout.pos.x)
+      .attr('y2', yEnd)
+
+  }
+
 
   wrap(text, textNode, width){
     //---clear previous---
