@@ -6,6 +6,8 @@ import { Renderer } from './Renderer';
 import {
   rightHead as linkRightHead,
   leftHead as linkLeftHead,
+  simpleRightHead as linkSimpleRightHead,
+  simpleLeftHead as linkSimpleLeftHead,
   tailGenerator
 } from '../helpers/link';
 
@@ -28,8 +30,19 @@ export class GeneralRenderer extends Renderer {
         const label = link.select('.dd-link-label');
 
         tail.attr('d', tailGenerator(d.style));
-        rightHead.attr('d', linkRightHead);
-        leftHead.attr('d', linkLeftHead);
+
+        if (d.style == 'LINE') {
+
+            link.attr('transform-origin', d.pathMeta.transformOrigin);
+            link.attr('transform', d.pathMeta.transform);
+            rightHead.attr('d', linkSimpleRightHead);
+            leftHead.attr('d', linkSimpleLeftHead);
+
+        } else {
+          rightHead.attr('d', linkRightHead);
+          leftHead.attr('d', linkLeftHead);
+        }
+
 
         arrowLabel(label, d, PADDING);
       })

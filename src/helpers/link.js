@@ -11,9 +11,41 @@ export function tailGenerator(style, opts) {
 
     case 'MESSAGE': return (d) => messageTail(d, opts);
 
+    case 'LINE': return lineTail;
+
     default:
       throw `Unknown link style "${style}"`;
   }
+}
+
+const _180OVER_PI = 180 / Math.PI;
+
+function lineTail(d) {
+  const sl = d.source.layout;
+  const tl = d.target.layout
+
+  d.pathMeta = {
+    start: {x: sl.pos.x, y: sl.pos.y},
+    end: {x: tl.pos.x, y: tl.pos.y},
+    dir: 'E',
+  }
+
+  const start = d.pathMeta.start;
+  const end = d.pathMeta.end;
+  const angle = Math.atan2(end.y - start.y, end.x - start.x)*_180OVER_PI;
+  const length = Math.sqrt((end.x - start.x)*(end.x - start.x) + (end.y - start.y)*(end.y - start.y));
+
+  d.pathMeta.length = length;
+
+  d.pathMeta.transform = `translate(${start.x} ${start.y}) rotate(${angle})`;
+
+  d.textMeta = {
+    pos: {x: start.x + length/2 , y: start.y},
+    baseLine: 'text-after-edge',
+    textAnchor: 'start'
+
+  }
+  return `M${0} ${0}L${length} ${0}`;
 }
 
 function messageTail(d, opts) {
@@ -176,6 +208,29 @@ function tail(d, isStraight) {
     script
   ]
   return script;
+}
+
+export function  simpleRightHead(d) {
+  return simpleHead(d, true);
+}
+export function  simpleLeftHead(d) {
+  return simpleHead(d, true);
+}
+
+function simpleHead(d, isRight) {
+
+  if (!d.pathMeta) {
+    return;
+  }
+  const w = 14;
+  const h = 8;
+  const bbw = d.source.layout.bbw;
+  const length = d.pathMeta.length;
+  if (isRight) {
+    return `M${length-bbw/2} 0l${-w} ${-h/2}v${h}Z`;
+  } else {
+    return `M${bbw/2} 0l${w} ${-h/2}v${h}Z`;
+  }
 }
 
 

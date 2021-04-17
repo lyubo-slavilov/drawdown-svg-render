@@ -34,17 +34,29 @@ export class Renderer {
   constructor({
       onDidChangeLayout = ()=>{},
       onDidDragOrZoom = ()=>{},
+      onDidSelection = ()=>{},
+      onDidCreateScene = ()=>{},
       onDidRender = (svg)=>{},
       diagramLayout = {},
+      onBlockClick = node => {},
+      onBlockDblClick = node => {},
       nodesStyle = NODE_STYLE_AUTO,
       autoCenter = false,
+      linksBeneathNodes = false,
+      autoLayoutOptions = {}
   } = {}) {
     this.onDidChangeLayout = onDidChangeLayout;
     this.onDidDragOrZoom = onDidDragOrZoom;
+    this.onDidSelection = onDidSelection;
+    this.onDidCreateScene = onDidCreateScene;
     this.onDidRender = onDidRender;
     this.diagramLayout = diagramLayout;
+    this.onBlockClick = onBlockClick;
+    this.onBlockDblClick = onBlockDblClick;
     this.nodesStyle = nodesStyle;
     this.autoCenter = autoCenter;
+    this.linksBeneathNodes = linksBeneathNodes;
+    this.autoLayoutOptions = autoLayoutOptions;
   }
 
   render(container, diagram) {
@@ -58,6 +70,7 @@ export class Renderer {
 
     let [svg, scene] = this.createScene(container, diagram, layout);
 
+    this.onDidCreateScene(svg.node(), scene.node())
     this.createDiagram(svg, scene, diagram, layout)
 
     //fix text selection on user interaction
@@ -72,13 +85,22 @@ export class Renderer {
 
   onCreate(svg, scene) {
     this.updateLinks(scene);
-    this.onDidDragOrZoom(svg.node());
+    this.onDidDragOrZoom(svg.node(), {
+      type: ''
+    });
     this.onDidRender(svg.node());
   }
 
-  onBlockDrag(svg, scene) {
+  onBlockDrag(svg, scene, e) {
     this.updateLinks(scene);
-    this.onDidDragOrZoom(svg.node())
+    this.onDidDragOrZoom(svg.node(), {
+      type: e.type,
+      target: e.sourceEvent.target,
+      x: e.x,
+      y: e.y,
+      dx: e.dx,
+      dy: e.dy
+    });
   }
 
   createScene(container, diagram, layout) {
@@ -92,7 +114,7 @@ export class Renderer {
       .attr("height", 200)
       .on('mousedown', function(){
         d3select(this).classed('focused', true);
-        d3event.stopPropagation();
+      //  d3event.stopPropagation();
       })
 
     let workarea = svg.append('g')
@@ -113,16 +135,21 @@ export class Renderer {
         });
 
     scene.append('g').attr('class', 'dd-timelines');
-    scene.append('g').attr('class', 'dd-blocks');
-    scene.append('g').attr('class', 'dd-links');
+    if (this.linksBeneathNodes) {
+      scene.append('g').attr('class', 'dd-links');
+      scene.append('g').attr('class', 'dd-blocks');
+    } else {
+      scene.append('g').attr('class', 'dd-blocks');
+      scene.append('g').attr('class', 'dd-links');
+    }
 
-    this.createZoom(svg, scene, diagram, layout)
+    this.createZoom(container, svg, scene, diagram, layout)
 
 
     return [svg, scene];
   }
 
-  createZoom(svg, scene, diagram, layout) {
+  createZoom(container, svg, scene, diagram, layout) {
     let renderer = this;
     //set zoom behavior
     svg.call(d3zoom().scaleExtent([0.5, 1])
@@ -136,10 +163,13 @@ export class Renderer {
       .on('start', () => {
         d3select('.dd-link-handle').classed('active', false);
         svg.selectAll('.selected').classed('selected', false)
+        renderer.onDidSelection(null);
       }).on('zoom', function(){
         diagram.transform = d3event.transform;
         scene.attr("transform", d3event.transform);
-        renderer.onDidDragOrZoom(this)
+        renderer.onDidDragOrZoom(this, {
+          type: d3event.type
+        })
       }).on('end', () => {
         renderer.onDidChangeLayout(diagram);
       })
@@ -162,7 +192,6 @@ export class Renderer {
     svg.append('rect').attr('class', 'selector'); // <-- noobs often forget this comma :) Well, me also
 
     (function() {
-      return; //This behavior is unstable for now. So bypass it.
       var isSelecting = false;
       var coords = {
         x1: 0,
@@ -171,7 +200,7 @@ export class Renderer {
         y2: 0
       }
 
-      d3select(document)
+      d3select(container)
         .on('mousedown', function() {
           if (d3event.target != svg.node()) {
             return;
@@ -179,7 +208,6 @@ export class Renderer {
           let screenM3x = svg.node().getScreenCTM();
           coords.x1 = d3event.x - screenM3x.e;
           coords.y1 = d3event.y - screenM3x.f;
-
           isSelecting = true;
         }).
         on('mousemove', function() {
@@ -213,12 +241,17 @@ export class Renderer {
 
           let list = svgNode.getIntersectionList(svgRect, svgNode);
           let collection = [];
+          let deselectedCollection = [];
           list.forEach((d) => {
-            if (d.classList.contains('selectable')) {
-              collection.push(d);
-              d.classList.toggle('selected');
+            if (d.classList.contains('dd-block-shape')) {
+              if (d.classList.toggle('selected')) {
+                collection.push(d);
+              } else {
+                deselectedCollection.push(d);
+              }
             }
-          })
+          });
+          renderer.onDidSelection(collection, deselectedCollection);
         });
     })();
   }
@@ -246,6 +279,16 @@ export class Renderer {
                 h: lyt.h ? lyt.h : 0,
                 links: lyt.links ? {... lyt.links} : {t: [],r: [],b: [],l: []}
               };
+              if (d.initialPosition) {
+                d.layout.pos.x = d.initialPosition.x;
+                d.layout.pos.y = d.initialPosition.y;
+              }
+          })
+          .on('click', function(d){
+            renderer.onBlockClick(d3event);
+          })
+          .on('dblclick', function(d){
+            renderer.onBlockDblClick(d3event);
           })
           .attr('x', d => d.layout.pos.x)
           .attr('y', d => d.layout.pos.y)
@@ -253,21 +296,32 @@ export class Renderer {
           // .attr('height', d => d.layout.h)
           .call(d3drag()
             .subject(d => d.layout.pos)
-            .on('drag', function(d){
+            .on('start', function(d) {
 
+              if (!d3event.sourceEvent.shiftKey) {
+                scene.selectAll('.selected').classed('selected', false);
+                renderer.onDidSelection(null);
+              }
+
+              renderer.onDidSelection([d3select(this).select('.dd-block-shape').node()])
+              d3select(this).select('.dd-block-shape').classed('selected', true);
+            })
+            .on('drag', function(d){
               d.layout.pos.x = d3event.x;
               d.layout.pos.y = d3event.y;
               d3select(this)
                 .attr("x", d.layout.pos.x)
                 .attr("y", d.layout.pos.y);
 
-              renderer.onBlockDrag(svg, scene);
+              renderer.onBlockDrag(svg, scene, d3event);
             })
             .on('end', () => {
               renderer.onDidChangeLayout(diagram);
             }));
 
-    blocks.append('path');
+    blocks.append('path').attr("class", "dd-block-shape");
+
+    blocks.append('g').attr("class", "dd-block-icon");
 
     blocks.append('text')
       .attr('y', PADDING)
@@ -276,8 +330,8 @@ export class Renderer {
     blocks.each(function(d){
       let block = d3select(this);
       let text = block.select('text');
-      let path = block.select('path');
-
+      let path = block.select('path.dd-block-shape');
+      let icon = block.select('g.dd-block-icon');
 
       let lyt = layout.blocks[d.id];
       let width = lyt ? lyt.w : MIN_WIDTH;
@@ -296,12 +350,17 @@ export class Renderer {
       d.layout.bbw = bbox.width;
       d.layout.bbh = bbox.height;
 
+      if (d.iconHref) {
+        icon.append('use').attr('href', d.iconHref)
+      }
+
+
     })
 
     let links = scene.select('.dd-links').selectAll('g')
       .data(diagram.links).enter()
         .append('g')
-          .attr('class', 'dd-link')
+          .attr('class', (d) => 'dd-link ' + (d.class || ''))
           .each(function(d){
             let link = d3select(this);
             link.append('path').attr('class', 'dd-link-tail').datum(d);
@@ -384,10 +443,18 @@ export class Renderer {
 
     let treeData = diagram.tree;
     let root = d3Hierarchy(treeData);
-    let tree = d3Tree().nodeSize([3*MIN_WIDTH, 1.3*MIN_WIDTH])(root);
+
+    const renderer = this;
+    const nodeHSize = renderer.autoLayoutOptions.nodeHSize || 3;
+    const nodeVSize = renderer.autoLayoutOptions.nodeVSize || 1.3;
+
+    let tree = d3Tree().nodeSize([nodeHSize*MIN_WIDTH, nodeVSize*MIN_WIDTH])(root);
     let layout = {
       blocks: {}
     }
+
+    let {center = {x:0, y:0}} = renderer.autoLayoutOptions;
+
 
     root.each(d => {
       let block = d.data.d;
@@ -395,12 +462,13 @@ export class Renderer {
         return;
       }
       layout.blocks[block.id] = {
-        pos: {x: d.x,y:d.y},
+        pos: renderer.autoLayoutOptions.horizontal ? {x: d.y,y:d.x} : {x: d.x,y:d.y},
         w: MIN_WIDTH,
         h: 0,
         links: {t: [],r: [],b: [],l: []}
       }
     });
+    layout.transform = {x: center.x, y: center.y, k: 1};
 
     return layout;
 
