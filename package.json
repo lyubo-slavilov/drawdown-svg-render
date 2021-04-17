@@ -1,6 +1,6 @@
 {
   "name": "drawdown-svg-render",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Svg renderer for drawdown diagrams",
   "main": "lib/Factory.js",
   "scripts": {
